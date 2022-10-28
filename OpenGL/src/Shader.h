@@ -28,5 +28,7 @@ public:
 	void Bind() const;
 	void Unbind() const;
 
+	void SerUniform1i(const std::string& name, int value);
+	void SerUniform1f(const std::string& name, float value);
 	void SerUniform4f(const std::string& name, float v0, float v1, float v2, float v3);
 };
