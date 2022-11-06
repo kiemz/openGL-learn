@@ -11,6 +11,14 @@
 #include "Shader.h"
 #include "Texture.h"
 
+#include "test/TestClearColor.h"
+#include "test/TestTexture2D.h"
+
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_opengl3.h>
+#include <imgui/imgui_impl_glfw.h>
 int main(void)
 {
     GLFWwindow* window;
@@ -19,12 +27,13 @@ int main(void)
     if (!glfwInit())
         return -1;
     
+    const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(960, 540, "Hello World", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -39,70 +48,64 @@ int main(void)
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    float positions[] = {
-        -0.5f, -0.5f, 0.0f, 0.0f,
-         0.5f, -0.5f, 1.0f, 0.0f,
-         0.5f,  0.5f, 1.0f, 1.0f,
-        -0.5f,  0.5f, 0.0f, 1.0f
-    };
-
-    unsigned int indices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
+    
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    VertexArray va;
-    VertexBuffer vb(positions, 4 * 4 * sizeof(float));
-
-    VertexBufferLayout layout;
-    layout.Push<float>(2);
-    layout.Push<float>(2);
-    va.AddBuffer(vb, layout);
-
-    IndexBuffer ib(indices, 6);
-
-    Shader shader("res/shaders/Basic.shader");
-    shader.Bind();
-    shader.SetUniform4f("u_Color",0.8f,0.3f,0.8f,1.0f);
-
-    Texture texture("res/textures/ChernoLogo.png");
-    texture.Bind();
-    shader.SetUniform1i("u_Texture", 0);
-
-    va.Unbind();
-    vb.Unbind();
-    ib.Unbind();
-    shader.Unbind();
-
     Render render;
 
-    float r = 0.0f;
-    float increment = 0.05f;
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
-    /* Loop until the user closes the window */
+    test::Test* currentTest = nullptr;
+    test::TestMenu* testMenu = new test::TestMenu(currentTest);
+    currentTest = testMenu;
+
+    testMenu->RegisterTest<test::TestClearColor>("Clear Color");
+    testMenu->RegisterTest<test::TestTexture2D>("Texture 2D");
+
+
     while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
+        GLCall(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
         render.Clear();
 
-        shader.Bind();
-        shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        
+        if (currentTest) {
+            currentTest->OnUpdate(0.0f);
+            currentTest->OnRender();
+            ImGui::Begin("Test");
+            if (currentTest != testMenu && ImGui::Button("<-")) {
+                delete currentTest;
+                currentTest = testMenu;
+            }
+            currentTest->OnImGuiRender();
+            ImGui::End();
+        }
 
-        render.Draw(va, ib, shader);
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        if (r > 1.0f) increment = -0.05f;
-        else if (r < 0.0f) increment = 0.05f;
-
-        r += increment;
-        /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
-        /* Poll for and process events */
         glfwPollEvents();
     }
+    
+    delete currentTest;
+    if (currentTest != testMenu) {
+        delete testMenu;
+    }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
 }

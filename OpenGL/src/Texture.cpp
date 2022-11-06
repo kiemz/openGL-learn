@@ -1,6 +1,6 @@
 #include "Texture.h"
 #include <iostream>
-#include "vendor/stb_image/stb_image.h"
+#include "stb_image/stb_image.h"
 
 Texture::Texture(const std::string& path) 
 	: m_RenderID(0), m_FilePath(path), m_LocalBuffer(nullptr), 
@@ -20,7 +20,7 @@ Texture::Texture(const std::string& path)
 	if (m_LocalBuffer)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_LocalBuffer);
-		glGenerateMipmap(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		stbi_image_free(m_LocalBuffer);
 	}
 	else
